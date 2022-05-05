@@ -6,3 +6,5 @@ config :papa, Papa.Repo,
   database: "papa_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :logger, level: :warn
