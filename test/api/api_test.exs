@@ -54,18 +54,23 @@ defmodule Papa.APITest do
         Papa.API.create_visit(member, visit_params)
 
       # requesting visit debits member account
-      assert post_request_member_account.seconds ==
-               member_account.seconds - visit_params.minutes * 60
+      assert Decimal.eq?(
+               post_request_member_account.seconds,
+               Decimal.sub(member_account.seconds, Decimal.mult(visit_params.minutes, 60))
+             )
 
       {:ok, accepted_visit} = Papa.API.accept_requested_visit(requested_visit, pal)
       {:ok, result} = Papa.API.fulfill_visit(accepted_visit)
 
       assert Papa.API.Visit.fulfilled?(result.visit)
 
+      expected_pal_seconds =
+        Decimal.mult(visit_params.minutes, 60)
+        |> Decimal.mult(Decimal.sub(1, Papa.API.Account.overhead_fee()))
+        |> Decimal.add(pal_account.seconds)
+
       # pal account credited time minus the overhead fee
-      assert result.pal_account.seconds ==
-               pal_account.seconds +
-                 visit_params.minutes * (60 - Papa.API.Account.overhead_fee_seconds())
+      assert Decimal.eq?(result.pal_account.seconds, expected_pal_seconds)
 
       assert result.transaction.member_id == member.id
       assert result.transaction.pal_id == pal.id
@@ -81,7 +86,8 @@ defmodule Papa.APITest do
           role: Papa.API.User.member_pal()
         })
 
-      too_many_minutes = div(member_account.seconds, 60) + 1
+      too_many_minutes =
+        Decimal.div(member_account.seconds, 60) |> Decimal.add(1) |> Decimal.to_integer()
 
       visit_params = %{
         minutes: too_many_minutes,

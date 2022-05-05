@@ -3,7 +3,7 @@ defmodule Papa.Repo.Migrations.CreateAccounts do
 
   def change do
     create table "accounts" do
-      add(:seconds, :integer, null: false)
+      add(:seconds, :decimal, null: false)
       add(:lock_version, :integer, null: false)
       add(:user_id, references("users"), null: false)
 
